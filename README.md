@@ -1,7 +1,7 @@
 # Android-Learning
 - [x] GeoQuiz
 - [x] CriminalIntent
-- [ ] BeatBox
+- [x] BeatBox
 - [ ] NerdLauncher
 - [ ] PhotoGallery
 - [ ] DragAndDraw
