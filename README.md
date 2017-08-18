@@ -2,7 +2,7 @@
 - [x] GeoQuiz
 - [x] CriminalIntent
 - [x] BeatBox
-- [ ] NerdLauncher
+- [x] NerdLauncher
 - [ ] PhotoGallery
 - [ ] DragAndDraw
 - [ ] Sunset

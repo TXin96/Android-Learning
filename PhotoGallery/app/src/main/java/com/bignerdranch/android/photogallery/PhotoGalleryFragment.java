@@ -9,17 +9,22 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 
 import com.bignerdranch.android.photogallery.model.GalleryItem;
+import com.bignerdranch.android.photogallery.model.QueryPreferences;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
@@ -37,6 +42,8 @@ public class PhotoGalleryFragment extends Fragment {
     private List<GalleryItem> mItems = new ArrayList<>();
     private ThumbnailDownloader<PhotoHolder> mThumbnailDownloader;
 
+    private ProgressBar mProgressBar;
+
     private int mFetchedPages = 1;
     private int mColumnNumbers = 3;
 
@@ -48,7 +55,8 @@ public class PhotoGalleryFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
-        new FetchItemsTask().execute(mFetchedPages);
+        setHasOptionsMenu(true);
+        updateItems();
 
         Handler responseHandler = new Handler();
         mThumbnailDownloader = new ThumbnailDownloader<>(responseHandler);
@@ -64,11 +72,82 @@ public class PhotoGalleryFragment extends Fragment {
         Log.i(TAG, "Background thread started");
     }
 
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_photo_gallery, menu);
+
+        MenuItem searchItem = menu.findItem(R.id.menu_item_search);
+        final SearchView searchView = (SearchView) searchItem.getActionView();
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                Log.d(TAG, "onQueryTextSubmit: " + query);
+                searchView.onActionViewCollapsed();
+                mItems.clear();
+                mPhotoRecyclerView.getAdapter().notifyDataSetChanged();
+                QueryPreferences.setStoredQuery(getActivity(), query);
+                mFetchedPages = 1;
+                updateItems();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                Log.d(TAG, "onQueryTextChange: " + newText);
+                return false;
+            }
+        });
+
+        searchView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String query = QueryPreferences.getStoredQuery(getActivity());
+                searchView.setQuery(query, false);
+            }
+        });
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_item_clear:
+                if (QueryPreferences.getStoredQuery(getActivity()) != null) {
+                    QueryPreferences.setStoredQuery(getActivity(), null);
+                    updateItems();
+                    return true;
+                }
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void updateItems() {
+        String query = QueryPreferences.getStoredQuery(getActivity());
+        new FetchItemsTask(query).execute(mFetchedPages);
+    }
+
+    private void showProgressBar(boolean ifShow) {
+        if (ifShow) {
+            mPhotoRecyclerView.setVisibility(View.INVISIBLE);
+            mProgressBar.setVisibility(View.VISIBLE);
+        } else {
+            mProgressBar.setVisibility(View.GONE);
+            mPhotoRecyclerView.setVisibility(View.VISIBLE);
+        }
+
+    }
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_photo_gallery, container, false);
+
         mPhotoRecyclerView = view.findViewById(R.id.fragment_photo_gallery_recycler_view);
+        mProgressBar = view.findViewById(R.id.fragment_progress_bar);
+        showProgressBar(true);
+
         mPhotoRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(), mColumnNumbers));
         mPhotoRecyclerView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -95,7 +174,7 @@ public class PhotoGalleryFragment extends Fragment {
                 if ((recyclerView.computeVerticalScrollExtent() + recyclerView.computeVerticalScrollOffset())
                         >= recyclerView.computeVerticalScrollRange()) {
                     mFetchedPages++;
-                    new FetchItemsTask().execute(mFetchedPages);
+                    updateItems();
                 }
                 GridLayoutManager layoutManager = (GridLayoutManager) mPhotoRecyclerView.getLayoutManager();
                 int lastPosition = layoutManager.findLastVisibleItemPosition();
@@ -148,14 +227,33 @@ public class PhotoGalleryFragment extends Fragment {
     }
 
     private class FetchItemsTask extends AsyncTask<Integer, Void, List<GalleryItem>> {
+        private String mQuery;
+
+        public FetchItemsTask(String query) {
+            mQuery = query;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            if (mPhotoRecyclerView!=null){
+                showProgressBar(true);
+            }
+        }
 
         @Override
         protected List<GalleryItem> doInBackground(Integer... integers) {
-            return new FlickrFetchr().fetchItems(integers[0]);
+
+            if (mQuery == null) {
+                return new FlickrFetchr().fetchRecentPhotos(integers[0]);
+            } else {
+                return new FlickrFetchr().searchPhotos(mQuery, integers[0]);
+            }
         }
 
         @Override
         protected void onPostExecute(List<GalleryItem> galleryItems) {
+            showProgressBar(false);
             if (mFetchedPages > 1) {
                 mItems.addAll(galleryItems);
                 mPhotoRecyclerView.getAdapter().notifyDataSetChanged();
