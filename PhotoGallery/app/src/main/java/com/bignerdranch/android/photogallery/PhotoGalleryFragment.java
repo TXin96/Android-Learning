@@ -7,7 +7,6 @@ import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.DrawableRes;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
@@ -21,7 +20,9 @@ import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 
 import com.bignerdranch.android.photogallery.model.GalleryItem;
+import com.squareup.picasso.Picasso;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,6 +80,7 @@ public class PhotoGalleryFragment extends Fragment {
                     GridLayoutManager layoutManager = (GridLayoutManager) mPhotoRecyclerView.getLayoutManager();
                     layoutManager.setSpanCount(newColumns);
                 }
+                mPhotoRecyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
             }
         });
 
@@ -94,6 +96,13 @@ public class PhotoGalleryFragment extends Fragment {
                         >= recyclerView.computeVerticalScrollRange()) {
                     mFetchedPages++;
                     new FetchItemsTask().execute(mFetchedPages);
+                }
+                GridLayoutManager layoutManager = (GridLayoutManager) mPhotoRecyclerView.getLayoutManager();
+                int lastPosition = layoutManager.findLastVisibleItemPosition();
+                try {
+                    preload(lastPosition);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         });
@@ -118,6 +127,23 @@ public class PhotoGalleryFragment extends Fragment {
     private void setAdapter() {
         if (isAdded()) {
             mPhotoRecyclerView.setAdapter(new PhotoAdapter(mItems));
+        }
+    }
+
+    private void preload(int position) throws IOException {
+        final int imageBufferSize = 10; //Number of images before & after position to cache
+
+        //设置开始和截止的位置
+        int startIndex = Math.max(position - imageBufferSize, 0); //Starting index must be >= 0
+        int endIndex = Math.min(position + imageBufferSize, mItems.size() - 1); //Ending index must be <= number of galleryItems - 1
+
+        //遍历并下载
+        for (int i = startIndex; i <= endIndex; i++) {
+            //当前的无需下载
+            if (i == position) continue;
+
+            String url = mItems.get(i).getUrl();
+            mThumbnailDownloader.preloadThumbnail(url);
         }
     }
 
@@ -171,9 +197,10 @@ public class PhotoGalleryFragment extends Fragment {
         @Override
         public void onBindViewHolder(PhotoHolder holder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
-            Drawable placeholder = ContextCompat.getDrawable(getContext(), R.mipmap.ic_launcher);
-            holder.bindDrawable(placeholder);
-            mThumbnailDownloader.queueThumbnail(holder, galleryItem.getUrl());
+            Picasso.with(getActivity()).load(galleryItem.getUrl()).placeholder(R.drawable.zeng).into(holder.mItemImageView);
+            //Drawable placeholder = ContextCompat.getDrawable(getContext(), R.mipmap.ic_launcher);
+            //holder.bindDrawable(placeholder);
+            //mThumbnailDownloader.queueThumbnail(holder, galleryItem.getUrl());
         }
 
         @Override
@@ -181,5 +208,4 @@ public class PhotoGalleryFragment extends Fragment {
             return mGalleryItems.size();
         }
     }
-
 }
