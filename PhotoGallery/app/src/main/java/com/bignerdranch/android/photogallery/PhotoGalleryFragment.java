@@ -13,6 +13,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -20,6 +21,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
@@ -107,6 +109,13 @@ public class PhotoGalleryFragment extends Fragment {
                 searchView.setQuery(query, false);
             }
         });
+
+        MenuItem toggleItem = menu.findItem(R.id.menu_item_toggle_polling);
+        if (PollService.isServiceAlarmOn(getActivity())) {
+            toggleItem.setTitle(R.string.stop_polling);
+        } else {
+            toggleItem.setTitle(R.string.start_polling);
+        }
     }
 
     @Override
@@ -118,10 +127,16 @@ public class PhotoGalleryFragment extends Fragment {
                     updateItems();
                     return true;
                 }
+            case R.id.menu_item_toggle_polling:
+                boolean shouldStartAlarm = !PollService.isServiceAlarmOn(getActivity());
+                PollService.setServiceAlarm(getActivity(), shouldStartAlarm);
+                getActivity().invalidateOptionsMenu();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
+
 
     private void updateItems() {
         String query = QueryPreferences.getStoredQuery(getActivity());
@@ -146,7 +161,9 @@ public class PhotoGalleryFragment extends Fragment {
 
         mPhotoRecyclerView = view.findViewById(R.id.fragment_photo_gallery_recycler_view);
         mProgressBar = view.findViewById(R.id.fragment_progress_bar);
-        showProgressBar(true);
+        if (savedInstanceState == null) {
+            showProgressBar(true);
+        }
 
         mPhotoRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(), mColumnNumbers));
         mPhotoRecyclerView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -220,9 +237,12 @@ public class PhotoGalleryFragment extends Fragment {
         for (int i = startIndex; i <= endIndex; i++) {
             //当前的无需下载
             if (i == position) continue;
-
+            PhotoHolder holder = (PhotoHolder) mPhotoRecyclerView.findViewHolderForAdapterPosition(i);
             String url = mItems.get(i).getUrl();
-            mThumbnailDownloader.preloadThumbnail(url);
+            if (holder != null) {
+                Picasso.with(getActivity()).load(url).placeholder(R.drawable.zeng).into(holder.mItemImageView);
+            }
+            //mThumbnailDownloader.preloadThumbnail(url);
         }
     }
 
@@ -235,9 +255,12 @@ public class PhotoGalleryFragment extends Fragment {
 
         @Override
         protected void onPreExecute() {
-            super.onPreExecute();
-            if (mPhotoRecyclerView!=null){
-                showProgressBar(true);
+            if (mPhotoRecyclerView != null) {
+                FrameLayout.LayoutParams layoutParams =
+                        new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+                layoutParams.gravity = Gravity.CENTER | Gravity.BOTTOM;
+                mProgressBar.setLayoutParams(layoutParams);
+                mProgressBar.setVisibility(View.VISIBLE);
             }
         }
 
