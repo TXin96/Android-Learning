@@ -1,4 +1,4 @@
-package com.bignerdranch.android.photogallery;
+package com.bignerdranch.android.photogallery.service;
 
 import android.app.AlarmManager;
 import android.app.IntentService;
@@ -14,6 +14,9 @@ import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
 
+import com.bignerdranch.android.photogallery.FlickrFetchr;
+import com.bignerdranch.android.photogallery.PhotoGalleryActivity;
+import com.bignerdranch.android.photogallery.R;
 import com.bignerdranch.android.photogallery.model.GalleryItem;
 import com.bignerdranch.android.photogallery.model.QueryPreferences;
 

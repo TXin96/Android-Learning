@@ -5,6 +5,7 @@ import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
@@ -12,6 +13,7 @@ import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
+import android.system.Os;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -27,6 +29,8 @@ import android.widget.ProgressBar;
 
 import com.bignerdranch.android.photogallery.model.GalleryItem;
 import com.bignerdranch.android.photogallery.model.QueryPreferences;
+import com.bignerdranch.android.photogallery.service.PollJobService;
+import com.bignerdranch.android.photogallery.service.PollService;
 import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
@@ -111,10 +115,18 @@ public class PhotoGalleryFragment extends Fragment {
         });
 
         MenuItem toggleItem = menu.findItem(R.id.menu_item_toggle_polling);
-        if (PollService.isServiceAlarmOn(getActivity())) {
-            toggleItem.setTitle(R.string.stop_polling);
-        } else {
-            toggleItem.setTitle(R.string.start_polling);
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP){
+            if (PollJobService.isServiceAlarmOn(getActivity())) {
+                toggleItem.setTitle(R.string.stop_polling);
+            } else {
+                toggleItem.setTitle(R.string.start_polling);
+            }
+        }else {
+            if (PollService.isServiceAlarmOn(getActivity())) {
+                toggleItem.setTitle(R.string.stop_polling);
+            } else {
+                toggleItem.setTitle(R.string.start_polling);
+            }
         }
     }
 
@@ -128,8 +140,7 @@ public class PhotoGalleryFragment extends Fragment {
                     return true;
                 }
             case R.id.menu_item_toggle_polling:
-                boolean shouldStartAlarm = !PollService.isServiceAlarmOn(getActivity());
-                PollService.setServiceAlarm(getActivity(), shouldStartAlarm);
+                setPollService();
                 getActivity().invalidateOptionsMenu();
                 return true;
             default:
@@ -137,6 +148,17 @@ public class PhotoGalleryFragment extends Fragment {
         }
     }
 
+    private void setPollService(){
+        System.out.println(Build.VERSION.SDK_INT +"    "  + Build.VERSION_CODES.LOLLIPOP);
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP){
+            System.out.println("lolipop");
+            boolean shouldStartAlarm = !PollJobService.isServiceAlarmOn(getActivity());
+            PollJobService.setServiceAlarm(getActivity(), shouldStartAlarm);
+        }else {
+            boolean shouldStartAlarm = !PollService.isServiceAlarmOn(getActivity());
+            PollService.setServiceAlarm(getActivity(), shouldStartAlarm);
+        }
+    }
 
     private void updateItems() {
         String query = QueryPreferences.getStoredQuery(getActivity());
