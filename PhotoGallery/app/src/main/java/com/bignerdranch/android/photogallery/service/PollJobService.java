@@ -29,11 +29,13 @@ import java.util.List;
  */
 
 public class PollJobService extends JobService {
+    public static final String ACTION_SHOW_NOTIFICATION = "com.bignerdranch.android.photogallery.SHOW_NOTIFICATION";
+    public static final String PERM_PRIVATE = "com.bignerdranch.android.photogallery.PRIVATE";
+    public static final String REQUEST_CODE = "REQUEST_CODE";
+    public static final String NOTIFICATION = "NOTIFICATION";
     private static final String TAG = "PollJobService";
-
     private static final int JOB_ID = 1;
     private static final long POLL_INTERVAL = 60000;
-
     private PollTask mPollTask;
 
     public static void setServiceAlarm(Context context, boolean isOn) {
@@ -50,7 +52,7 @@ public class PollJobService extends JobService {
         } else {
             jobScheduler.cancel(JOB_ID);
         }
-
+        QueryPreferences.setAlarmOn(context, isOn);
     }
 
     public static boolean isServiceAlarmOn(Context context) {
@@ -131,6 +133,8 @@ public class PollJobService extends JobService {
 
                 NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(PollJobService.this);
                 notificationManagerCompat.notify(0, notification);
+
+                sendBroadcast(new Intent(ACTION_SHOW_NOTIFICATION), PERM_PRIVATE);
             }
 
             QueryPreferences.setLastResultId(PollJobService.this, resultId);

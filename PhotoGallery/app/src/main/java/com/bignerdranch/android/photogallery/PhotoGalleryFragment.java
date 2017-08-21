@@ -1,5 +1,6 @@
 package com.bignerdranch.android.photogallery;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
@@ -9,11 +10,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
-import android.system.Os;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -27,6 +26,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 
+import com.bignerdranch.android.photogallery.base.VisibleFragment;
 import com.bignerdranch.android.photogallery.model.GalleryItem;
 import com.bignerdranch.android.photogallery.model.QueryPreferences;
 import com.bignerdranch.android.photogallery.service.PollJobService;
@@ -41,7 +41,7 @@ import java.util.List;
  * Created by michaeltan on 2017/8/16.
  */
 
-public class PhotoGalleryFragment extends Fragment {
+public class PhotoGalleryFragment extends VisibleFragment {
     private static final String TAG = "PhotoGalleryFragment";
 
     private RecyclerView mPhotoRecyclerView;
@@ -115,13 +115,13 @@ public class PhotoGalleryFragment extends Fragment {
         });
 
         MenuItem toggleItem = menu.findItem(R.id.menu_item_toggle_polling);
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP){
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP) {
             if (PollJobService.isServiceAlarmOn(getActivity())) {
                 toggleItem.setTitle(R.string.stop_polling);
             } else {
                 toggleItem.setTitle(R.string.start_polling);
             }
-        }else {
+        } else {
             if (PollService.isServiceAlarmOn(getActivity())) {
                 toggleItem.setTitle(R.string.stop_polling);
             } else {
@@ -148,13 +148,11 @@ public class PhotoGalleryFragment extends Fragment {
         }
     }
 
-    private void setPollService(){
-        System.out.println(Build.VERSION.SDK_INT +"    "  + Build.VERSION_CODES.LOLLIPOP);
-        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP){
-            System.out.println("lolipop");
+    private void setPollService() {
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.LOLLIPOP) {
             boolean shouldStartAlarm = !PollJobService.isServiceAlarmOn(getActivity());
             PollJobService.setServiceAlarm(getActivity(), shouldStartAlarm);
-        }else {
+        } else {
             boolean shouldStartAlarm = !PollService.isServiceAlarmOn(getActivity());
             PollService.setServiceAlarm(getActivity(), shouldStartAlarm);
         }
@@ -309,17 +307,29 @@ public class PhotoGalleryFragment extends Fragment {
         }
     }
 
-    private class PhotoHolder extends RecyclerView.ViewHolder {
+    private class PhotoHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private ImageView mItemImageView;
+        private GalleryItem mGalleryItem;
 
         public PhotoHolder(View itemView) {
             super(itemView);
 
             mItemImageView = itemView.findViewById(R.id.fragment_photo_gallery_image_view);
+            itemView.setOnClickListener(this);
+        }
+
+        public void bindGalleryItem(GalleryItem galleryItem) {
+            mGalleryItem = galleryItem;
         }
 
         public void bindDrawable(Drawable drawable) {
             mItemImageView.setImageDrawable(drawable);
+        }
+
+        @Override
+        public void onClick(View view) {
+            Intent intent = PhotoPageActivity.newIntent(getActivity(), mGalleryItem.getPhotoUri());
+            startActivity(intent);
         }
     }
 
@@ -340,6 +350,7 @@ public class PhotoGalleryFragment extends Fragment {
         @Override
         public void onBindViewHolder(PhotoHolder holder, int position) {
             GalleryItem galleryItem = mGalleryItems.get(position);
+            holder.bindGalleryItem(galleryItem);
             Picasso.with(getActivity()).load(galleryItem.getUrl()).placeholder(R.drawable.zeng).into(holder.mItemImageView);
             //Drawable placeholder = ContextCompat.getDrawable(getContext(), R.mipmap.ic_launcher);
             //holder.bindDrawable(placeholder);
