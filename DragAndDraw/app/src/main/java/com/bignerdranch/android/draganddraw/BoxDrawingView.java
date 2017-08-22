@@ -111,7 +111,7 @@ public class BoxDrawingView extends View {
                 mCurrentBox = null;
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
-
+                System.out.println(event.getPointerId(0)+"   "+event.getPointerId(1));
                 break;
             case MotionEvent.ACTION_POINTER_UP:
 
