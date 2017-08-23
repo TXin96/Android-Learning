@@ -6,4 +6,4 @@
 - [x] PhotoGallery
 - [x] DragAndDraw (Rotating function hasn't been tested because Multi-touch is not supported in the emulator.)
 - [x] Sunset
-- [ ] Locatr
+- [x] Locatr
