@@ -17,7 +17,7 @@ import java.util.UUID;
  * Created by michaeltan on 2017/7/19.
  */
 
-public class CrimePagerActivity extends AppCompatActivity implements CrimeFragment.Callbacks{
+public class CrimePagerActivity extends AppCompatActivity implements CrimeFragment.Callbacks {
 
     private static final String EXTRA_CRIME_ID = "com.bignerdranch.android.criminalintent.crime_id";
 
@@ -28,14 +28,6 @@ public class CrimePagerActivity extends AppCompatActivity implements CrimeFragme
         Intent intent = new Intent(packageContext, CrimePagerActivity.class);
         intent.putExtra(EXTRA_CRIME_ID, crimeId);
         return intent;
-    }
-
-    @Override
-    public void onBackPressed() {
-        Intent intent = new Intent(this, CrimeListActivity.class);
-        intent.addFlags(intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(intent);
-        finish();
     }
 
     @Override
